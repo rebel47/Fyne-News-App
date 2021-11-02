@@ -1,0 +1,3 @@
+Your API key is: 954f14b25d7a4a5b9c3e2ba2a7bfc4c7
+
+Newsapi.org API key

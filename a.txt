@@ -1,0 +1,153 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"image/color"
+	"io"
+	"net/http"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
+	// "fyne.io/fyne/v2/layout"
+)
+
+var articleNum int = 1
+var news News
+
+func main() {
+	a := app.New()
+	w := a.NewWindow("News App")
+	w.Resize(fyne.NewSize(400, 400))
+
+	// Default App
+	// label2 := canvas.NewText(fmt.Sprintf("Headline %s", "--"), color.Black)
+	label2 := widget.NewLabel(fmt.Sprintf("%s", news.Articles[1000].Title))
+
+	label2.TextStyle = fyne.TextStyle{Bold: true}
+	label2.Wrapping = fyne.TextWrapBreak
+	label2.Alignment = fyne.TextAlignCenter
+	label3 := canvas.NewText(fmt.Sprint(" Article %s ", "--"), color.Black)
+	label3.Alignment = fyne.TextAlignCenter
+
+	// API Work
+	input := widget.NewEntry()
+	input.SetPlaceHolder("Enter your city name")
+
+	content := container.NewVBox(input, widget.NewButton("click", func() {
+
+		res, err := http.Get(fmt.Sprintf("https://newsapi.org/v2/everything?q=%s&from=2021-10-31&sortBy=publishedAt&apiKey=954f14b25d7a4a5b9c3e2ba2a7bfc4c7", input.Text))
+		// res, err := http.Get(fmt.Sprintf("https://newsapi.org/v2/top-headlines?sources=%s&apiKey=954f14b25d7a4a5b9c3e2ba2a7bfc4c7", input.Text))
+		if err != nil {
+			fmt.Println(err)
+		}
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer res.Body.Close()
+		news, err := UnmarshalNews(body)
+		if err != nil {
+			fmt.Println(err)
+		}
+		label2.Text = "" + (news.Articles[1000].Title)
+
+		label2.Refresh()
+		label3.Text = "" + (news.Articles[1000].Description)
+		label3.Refresh()
+
+	}))
+	// res, err := http.Get(fmt.Sprintf("https://newsapi.org/v2/top-headlines?sources=techcrunch&apiKey=954f14b25d7a4a5b9c3e2ba2a7bfc4c7"))
+
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// body, err := io.ReadAll(res.Body)
+	// defer res.Body.Close()
+	// news, err := UnmarshalNews(body)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	img := canvas.NewImageFromFile("logo.png")
+	img.FillMode = canvas.ImageFillOriginal
+
+	label1 := canvas.NewText("News App", color.Black)
+	label1.TextStyle = fyne.TextStyle{Bold: true}
+	label1.Alignment = fyne.TextAlignCenter
+	// label2 := widget.NewLabel(fmt.Sprintf("No of articles:%d",
+	// 	news.TotalResults))
+	//show title
+	// label2 := widget.NewLabel(fmt.Sprintf("%s", news.Articles[1].Title))
+	// label2.TextStyle = fyne.TextStyle{Bold: true}
+	// label2.Wrapping = fyne.TextWrapBreak
+	// show articles
+	entry1 := widget.NewLabel(fmt.Sprintf("%s",
+		news.Articles[1].Description))
+	entry1.Wrapping = fyne.TextWrapBreak
+
+	btn := widget.NewButton("Next", func() {
+		articleNum += 1
+		label3.Text = news.Articles[1000].Title
+		entry1.Text = news.Articles[1000].Description
+		label3.Refresh()
+		entry1.Refresh()
+	})
+	// Different Type of News
+	// appleBtn := widget.NewButton("Apple", func() {
+	// 	log.Println("apple")
+	// })
+	// teslaBtn := widget.NewButton("Tesla", func() {
+	// 	log.Println("tesla")
+	// })
+	// techcrunchBtn := widget.NewButton("Tech Cruch", func() {
+	// 	log.Println("techcrunch")
+	// })
+
+	e := container.NewVBox(label1, content, label3, entry1, btn)
+	e.Resize(fyne.NewSize(300, 300))
+	c := container.NewBorder(img, label2, nil, nil, e)
+	w.SetContent(c)
+	w.ShowAndRun()
+}
+
+// This file was generated from JSON Schema using quicktype, do not modify it directly.
+// To parse and unparse this JSON data, add this code to your project and do:
+//
+//    news, err := UnmarshalNews(bytes)
+//    bytes, err = news.Marshal()
+
+func UnmarshalNews(data []byte) (News, error) {
+	var r News
+	err := json.Unmarshal(data, &r)
+	return r, err
+}
+
+func (r *News) Marshal() ([]byte, error) {
+	return json.Marshal(r)
+}
+
+type News struct {
+	Status       string    `json:"status"`
+	TotalResults int64     `json:"totalResults"`
+	Articles     []Article `json:"articles"`
+}
+
+type Article struct {
+	Source      Source  `json:"source"`
+	Author      *string `json:"author"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	URL         string  `json:"url"`
+	URLToImage  *string `json:"urlToImage"`
+	PublishedAt string  `json:"publishedAt"`
+	Content     string  `json:"content"`
+}
+
+type Source struct {
+	ID   *string `json:"id"`
+	Name string  `json:"name"`
+}
